@@ -11,6 +11,8 @@ export interface CurrentWeather {
   feelsLike: number;
   weatherCode: number;
   description: string;
+  windSpeed?: number;
+  windDirection?: number;
 }
 
 export interface DailyForecast {

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, FormEvent } from 'react';
-import { Search, MapPin, Loader2, Sparkles, Droplets, Thermometer, Calendar, Sun, Cloud, CloudLightning, Locate } from 'lucide-react';
+import { Search, MapPin, Loader2, Sparkles, Droplets, Thermometer, Calendar, Sun, Cloud, CloudLightning, Locate, Shirt, Activity, Wind, Navigation } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { getWeatherDescription, getWeatherIcon } from './lib/weather-utils';
@@ -16,6 +16,7 @@ export default function App() {
   const [aiTip, setAiTip] = useState<string>('');
   const [aiClothing, setAiClothing] = useState<string>('');
   const [aiActivity, setAiActivity] = useState<string>('');
+  const [aiHistory, setAiHistory] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export default function App() {
     setAiTip('');
     setAiClothing('');
     setAiActivity('');
+    setAiHistory('');
     
     try {
       // 1. Geocoding
@@ -48,7 +50,7 @@ export default function App() {
       
       // 2. Weather Forecast
       const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${locData.latitude}&longitude=${locData.longitude}&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${locData.latitude}&longitude=${locData.longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`
       );
       
       if (!weatherRes.ok) {
@@ -61,7 +63,9 @@ export default function App() {
         temperature: wData.current.temperature_2m,
         feelsLike: wData.current.apparent_temperature,
         weatherCode: wData.current.weather_code,
-        description: getWeatherDescription(wData.current.weather_code)
+        description: getWeatherDescription(wData.current.weather_code),
+        windSpeed: wData.current.wind_speed_10m,
+        windDirection: wData.current.wind_direction_10m,
       };
       
       const daily: DailyForecast[] = wData.daily.time.map((time: string, index: number) => ({
@@ -97,16 +101,23 @@ export default function App() {
       });
       
       if (res.ok) {
-        const { tip, clothing, activity } = await res.json();
+        const { tip, clothing, activity, historicalEvent } = await res.json();
         setAiTip(tip);
         setAiClothing(clothing);
         setAiActivity(activity);
+        setAiHistory(historicalEvent || "No historical event found.");
       } else {
         setAiTip("I couldn't generate a tip right now. Enjoy the weather!");
+        setAiHistory("Check back later for history.");
+        setAiClothing("Check back later.");
+        setAiActivity("Enjoy your day!");
       }
     } catch (err) {
       console.error('Error fetching AI tip:', err);
       setAiTip("I couldn't generate a tip right now. Enjoy the weather!");
+      setAiHistory("Check back later for history.");
+      setAiClothing("Check back later.");
+      setAiActivity("Enjoy your day!");
     }
   };
 
@@ -126,6 +137,7 @@ export default function App() {
     setAiTip('');
     setAiClothing('');
     setAiActivity('');
+    setAiHistory('');
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -166,7 +178,7 @@ export default function App() {
   const WeatherIcon = weatherData ? getWeatherIcon(weatherData.current.weatherCode) : Sun;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 text-slate-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-900 font-sans flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-200/60 bg-white/60 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-start sm:items-center justify-between gap-4">
@@ -269,39 +281,64 @@ export default function App() {
                 </div>
 
                 <div className="mt-auto pt-6 flex flex-col gap-3">
-                  <div className="bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                    <p className="text-[10px] uppercase tracking-wider text-blue-200 mb-1">Smart Clothing Suggestion</p>
-                    {aiClothing ? (
-                      <p className="text-sm font-medium leading-tight">{aiClothing}</p>
-                    ) : (
-                      <div className="flex items-center gap-2 text-blue-200 text-sm">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Thinking...
-                      </div>
-                    )}
+                  <div className="bg-white/10 hover:bg-white/15 transition-colors p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/20 flex items-start gap-3">
+                    <div className="p-2 bg-blue-400/20 rounded-xl shrink-0 text-blue-100">
+                      <Shirt className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200 mb-1">Smart Clothing</p>
+                      {aiClothing ? (
+                        <p className="text-sm font-medium leading-tight text-white">{aiClothing}</p>
+                      ) : (
+                        <div className="flex items-center gap-2 text-blue-200 text-sm">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Thinking...
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="bg-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-                    <p className="text-[10px] uppercase tracking-wider text-blue-200 mb-1">Ideal Activity</p>
-                    {aiActivity ? (
-                      <p className="text-sm font-medium leading-tight">{aiActivity}</p>
-                    ) : (
-                      <div className="flex items-center gap-2 text-blue-200 text-sm">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Thinking...
-                      </div>
-                    )}
+                  <div className="bg-white/10 hover:bg-white/15 transition-colors p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/20 flex items-start gap-3">
+                    <div className="p-2 bg-purple-400/20 rounded-xl shrink-0 text-blue-100">
+                      <Activity className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200 mb-1">Ideal Activity</p>
+                      {aiActivity ? (
+                        <p className="text-sm font-medium leading-tight text-white">{aiActivity}</p>
+                      ) : (
+                        <div className="flex items-center gap-2 text-blue-200 text-sm">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Thinking...
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white/10 p-3 sm:p-4 rounded-2xl border border-white/10">
-                      <p className="text-[10px] uppercase tracking-wider text-blue-200">Precipitation</p>
-                      <p className="text-xl font-bold">{weatherData.daily[0].precipitationProbability}%</p>
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200 truncate">Precipitation</p>
+                      <p className="text-lg sm:text-xl font-bold">{weatherData.daily[0].precipitationProbability}%</p>
                     </div>
-                    <div className="bg-white/10 p-3 sm:p-4 rounded-2xl border border-white/10">
+                    <div className="bg-white/10 p-3 sm:p-4 rounded-2xl border border-white/10 flex flex-col justify-between">
                       <p className="text-[10px] uppercase tracking-wider text-blue-200">Condition</p>
                       <div className="text-lg font-bold mt-0.5">
                         <WeatherIcon className="w-6 h-6" />
+                      </div>
+                    </div>
+                    <div className="bg-white/10 p-3 sm:p-4 rounded-2xl border border-white/10 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase tracking-wider text-blue-200 truncate">Wind Speed</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Wind className="w-4 h-4 text-blue-200 shrink-0" />
+                        <p className="text-lg sm:text-xl font-bold truncate">
+                          {weatherData.current.windSpeed !== undefined ? `${Math.round(weatherData.current.windSpeed)} km/h` : '--'}
+                        </p>
+                        {weatherData.current.windDirection !== undefined && (
+                          <Navigation 
+                            className="w-3.5 h-3.5 text-blue-200 shrink-0 ml-1" 
+                            style={{ transform: `rotate(${weatherData.current.windDirection}deg)` }}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -311,31 +348,57 @@ export default function App() {
 
             <div className="lg:col-span-8 flex flex-col gap-6">
               
-              {/* AI Planning Recommendation Card */}
-              <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 bg-amber-100 rounded-xl">
-                    <Sparkles className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">AI Intelligence</span>
-                </div>
-                <div>
-                  {aiTip ? (
-                    <>
-                      <h3 className="text-lg font-bold text-slate-900">Daily Recommendation</h3>
-                      <p className="text-sm text-slate-600 mt-1">{aiTip}</p>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating insight...
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* AI Planning Recommendation Card */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-sm rounded-3xl p-6 flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 bg-amber-100 rounded-xl shadow-sm">
+                      <Sparkles className="w-6 h-6 text-amber-600" />
                     </div>
-                  )}
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">AI Intelligence</span>
+                  </div>
+                  <div>
+                    {aiTip ? (
+                      <>
+                        <h3 className="text-lg font-bold text-slate-900">Daily Recommendation</h3>
+                        <p className="text-sm text-slate-700 mt-2 font-medium">{aiTip}</p>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating insight...
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* History Card */}
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 shadow-sm rounded-3xl p-6 flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 bg-purple-100 rounded-xl shadow-sm">
+                      <Calendar className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-widest">On This Day</span>
+                  </div>
+                  <div>
+                    {aiHistory ? (
+                      <>
+                        <h3 className="text-lg font-bold text-slate-900">Historical Event</h3>
+                        <p className="text-sm text-slate-700 mt-2 font-medium">{aiHistory}</p>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Searching history...
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* 7-Day Forecast Chart */}
-              <div className="flex-1 bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sm:p-8 flex flex-col">
+              <div className="flex-1 bg-white border border-slate-200 shadow-md shadow-blue-900/5 rounded-3xl p-6 sm:p-8 flex flex-col relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"></div>
                 <div className="flex justify-between items-end mb-8">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">7-Day Temperature Forecast</h3>
