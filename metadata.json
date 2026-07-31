@@ -1,0 +1,6 @@
+{
+  "name": "Intelligent Weather",
+  "description": "A modern weather dashboard with search, 7-day forecast chart, and AI-powered daily planning recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
